@@ -1,0 +1,221 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>Chatbot — AI Learning Assistant</title>
+    <link rel="stylesheet" href="/static/css/style.css" />
+    <link rel="preconnect" href="https://fonts.googleapis.com" />
+    <link href="https://fonts.googleapis.com/css2?family=Space+Mono:wght@400;700&family=Outfit:wght@300;400;500;600;700&display=swap" rel="stylesheet" />
+</head>
+<body>
+
+    <!-- HEADER -->
+    <header class="app-header">
+        <div class="header-inner">
+            <div class="logo-area">
+                <div class="bot-avatar">
+                    <div class="avatar-ring"></div>
+                    <span class="avatar-icon">&#11043;</span>
+                    <div class="pulse-dot"></div>
+                </div>
+                <div class="brand">
+                    <h1 class="app-title">Chatbot</h1>
+                    <div class="status-line">
+                        <span class="status-dot"></span>
+                        <span class="status-text">Online &middot; Wikipedia + AI</span>
+                    </div>
+                </div>
+            </div>
+            <button class="clear-btn" onclick="clearChat()">
+                <span class="clear-icon">&#8634;</span> New Chat
+            </button>
+        </div>
+    </header>
+
+    <!-- CHAT AREA -->
+    <main class="chat-container" id="chatContainer">
+        <div class="welcome-card" id="welcomeCard">
+            <div class="welcome-glow"></div>
+            <div class="welcome-hex">&#11043;</div>
+            <h2 class="welcome-title">Ask me anything</h2>
+            <p class="welcome-sub">I search Wikipedia and use AI to deliver clear, summarized answers on any topic.</p>
+            <div class="example-chips">
+                <span class="chip" onclick="fillInput('What is photosynthesis?')">Photosynthesis</span>
+                <span class="chip" onclick="fillInput('Explain gravity')">Gravity</span>
+                <span class="chip" onclick="fillInput('What is the French Revolution?')">French Revolution</span>
+                <span class="chip" onclick="fillInput('What is DNA?')">DNA</span>
+                <span class="chip" onclick="fillInput('How does the internet work?')">Internet</span>
+                <span class="chip" onclick="fillInput('What is machine learning?')">Machine Learning</span>
+            </div>
+        </div>
+        <div id="messagesArea"></div>
+    </main>
+
+    <!-- INPUT FOOTER -->
+    <footer class="input-area">
+        <div class="input-inner">
+            <div class="input-wrapper">
+                <input
+                    type="text"
+                    id="userInput"
+                    class="chat-input"
+                    placeholder="Ask anything..."
+                    autocomplete="off"
+                />
+            </div>
+            <button class="send-btn" id="sendBtn" onclick="sendMessage()">
+                <span class="send-label">Send</span>
+                <span class="send-arrow">&#8594;</span>
+            </button>
+        </div>
+        <p class="footer-note">Powered by Wikipedia &middot; Hugging Face BART</p>
+    </footer>
+
+    <script>
+        let isLoading = false;
+
+        async function sendMessage() {
+            if (isLoading) return;
+            const input = document.getElementById('userInput');
+            const question = input.value.trim();
+            if (!question) {
+                input.classList.add('shake');
+                setTimeout(() => input.classList.remove('shake'), 400);
+                return;
+            }
+
+            const welcome = document.getElementById('welcomeCard');
+            if (welcome) {
+                welcome.style.opacity = '0';
+                welcome.style.transform = 'translateY(-10px) scale(0.98)';
+                setTimeout(() => welcome.remove(), 300);
+            }
+
+            appendMessage('user', question, '', '');
+            input.value = '';
+            setLoading(true);
+            const loadingId = showLoading();
+
+            try {
+                const response = await fetch('/chat', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({ question })
+                });
+                const data = await response.json();
+                removeLoading(loadingId);
+                appendMessage('bot', data.answer, data.source, data.source_url);
+            } catch (error) {
+                removeLoading(loadingId);
+                appendMessage('bot', 'Cannot reach the server. Is the backend running?', 'Error', '');
+            } finally {
+                setLoading(false);
+            }
+        }
+
+        function setLoading(state) {
+            isLoading = state;
+            const btn = document.getElementById('sendBtn');
+            btn.classList.toggle('loading', state);
+            btn.disabled = state;
+        }
+
+        function appendMessage(sender, text, source, url) {
+            const area = document.getElementById('messagesArea');
+            const row = document.createElement('div');
+            row.className = 'message-row ' + sender + '-row';
+
+            if (sender === 'bot') {
+                const avatarEl = document.createElement('div');
+                avatarEl.className = 'msg-avatar';
+                avatarEl.innerHTML = '&#11043;';
+                row.appendChild(avatarEl);
+            }
+
+            const col = document.createElement('div');
+            col.className = 'msg-col';
+
+            const bubble = document.createElement('div');
+            bubble.className = 'bubble ' + sender + '-bubble';
+            bubble.textContent = text;
+            col.appendChild(bubble);
+
+            if (sender === 'bot' && source) {
+                const sourceEl = document.createElement('div');
+                sourceEl.className = 'source-tag';
+                if (url) {
+                    sourceEl.innerHTML = '<span class="src-icon">&#11043;</span> <a href="' + url + '" target="_blank" rel="noopener">' + source + '</a>';
+                } else {
+                    sourceEl.innerHTML = '<span class="src-icon">&#11043;</span> ' + source;
+                }
+                col.appendChild(sourceEl);
+            }
+
+            row.appendChild(col);
+            area.appendChild(row);
+            requestAnimationFrame(() => { row.classList.add('visible'); });
+
+            const container = document.getElementById('chatContainer');
+            container.scrollTop = container.scrollHeight;
+        }
+
+        function showLoading() {
+            const area = document.getElementById('messagesArea');
+            const id = 'loading-' + Date.now();
+            const row = document.createElement('div');
+            row.className = 'message-row bot-row';
+            row.id = id;
+
+            const avatarEl = document.createElement('div');
+            avatarEl.className = 'msg-avatar';
+            avatarEl.innerHTML = '&#11043;';
+            row.appendChild(avatarEl);
+
+            const col = document.createElement('div');
+            col.className = 'msg-col';
+
+            const bubble = document.createElement('div');
+            bubble.className = 'bubble bot-bubble loading-bubble';
+            bubble.innerHTML = '<span class="dot"></span><span class="dot"></span><span class="dot"></span>';
+            col.appendChild(bubble);
+            row.appendChild(col);
+            area.appendChild(row);
+            requestAnimationFrame(() => row.classList.add('visible'));
+
+            const container = document.getElementById('chatContainer');
+            container.scrollTop = container.scrollHeight;
+            return id;
+        }
+
+        function removeLoading(id) {
+            const el = document.getElementById(id);
+            if (el) el.remove();
+        }
+
+        function clearChat() {
+            document.getElementById('messagesArea').innerHTML = '';
+            const container = document.getElementById('chatContainer');
+            if (!document.getElementById('welcomeCard')) {
+                const wc = document.createElement('div');
+                wc.id = 'welcomeCard';
+                wc.className = 'welcome-card';
+                wc.innerHTML = '<div class="welcome-glow"></div><div class="welcome-hex">&#11043;</div><h2 class="welcome-title">Ask me anything</h2><p class="welcome-sub">I search Wikipedia and use AI to deliver clear, summarized answers on any topic.</p><div class="example-chips"><span class="chip" onclick="fillInput(\'What is photosynthesis?\')">Photosynthesis</span><span class="chip" onclick="fillInput(\'Explain gravity\')">Gravity</span><span class="chip" onclick="fillInput(\'What is the French Revolution?\')">French Revolution</span><span class="chip" onclick="fillInput(\'What is DNA?\')">DNA</span><span class="chip" onclick="fillInput(\'How does the internet work?\')">Internet</span><span class="chip" onclick="fillInput(\'What is machine learning?\')">Machine Learning</span></div>';
+                container.insertBefore(wc, document.getElementById('messagesArea'));
+            }
+        }
+
+        function fillInput(text) {
+            const input = document.getElementById('userInput');
+            input.value = text;
+            input.focus();
+        }
+
+        document.addEventListener('DOMContentLoaded', function () {
+            document.getElementById('userInput').addEventListener('keydown', function (e) {
+                if (e.key === 'Enter') sendMessage();
+            });
+        });
+    </script>
+</body>
+</html>

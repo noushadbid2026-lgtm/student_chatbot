@@ -1,0 +1,30 @@
+# ============================================================
+# requirements.txt
+# Install all dependencies with:
+#   pip install -r requirements.txt
+# ============================================================
+
+# FastAPI: the web framework that runs our backend server
+fastapi==0.111.0
+
+# Uvicorn: the ASGI server that runs FastAPI
+uvicorn==0.30.1
+
+# Jinja2: lets FastAPI render HTML templates (like index.html)
+jinja2==3.1.4
+
+# Python-multipart: needed for FastAPI to handle form data
+python-multipart==0.0.9
+
+# Wikipedia: the library to search and fetch Wikipedia articles
+wikipedia==1.4.0
+
+# Transformers: Hugging Face library for AI models (BART summarizer)
+transformers==4.41.2
+
+# PyTorch: the math engine that powers Hugging Face models
+# Use the CPU version to keep it lightweight for students
+torch==2.3.1
+
+# Sentencepiece: required by some Hugging Face tokenizers
+sentencepiece==0.2.0
